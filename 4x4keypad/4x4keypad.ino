@@ -14,12 +14,14 @@
 #include <array>
 #include <map>
 
-
-// const uint8_t rowPins[] = {PA0, PA1, PA2, PA3};
+const uint32_t rowScanFreq = 20; //Hz
 std::array<uint32_t, 4> rowPins = {PA0, PA1, PA2, PA3};
 std::array<uint32_t, 4> colPins = {PA4, PA5, PA6, PA7};
 volatile uint8_t currentRowIndex = 0;
-volatile uint8_t buttonState[] = {0,0};
+volatile uint8_t repeat = 0;
+volatile uint8_t previousState[] = {0, 0};
+volatile uint8_t currentState[] = {0, 0};
+char lineBuffer[17];
 
 U8X8_SH1106_128X64_NONAME_HW_I2C u8x8(/* reset=*/ U8X8_PIN_NONE);
 
@@ -58,7 +60,7 @@ void configureColumnPins() {
 
 void attachColumnInterrupts() {
   for (std::size_t col = 0; col < colPins.size(); col++) {
-      attachInterrupt(digitalPinToInterrupt(colPins[col]), std::bind(handleButtonInterrupt, &colPins[col]), FALLING);
+      attachInterrupt(digitalPinToInterrupt(colPins[col]), std::bind(handleButtonInterrupt, &colPins[col]), RISING);
   }
 }
 void detachColumnInterrupts() {
@@ -66,11 +68,12 @@ void detachColumnInterrupts() {
       detachInterrupt(digitalPinToInterrupt(colPins[col]));
   }
 }
+
 void setup()
 {
 //  Serial.begin(9600); 
   u8x8.begin();
-  u8x8.setFont(u8x8_font_px437wyse700a_2x2_r);
+  u8x8.setFont(u8x8_font_8x13_1x2_f);
 
 #if defined(TIM1)
   TIM_TypeDef *Instance = TIM1;
@@ -86,14 +89,9 @@ void setup()
   configureColumnPins();
   attachColumnInterrupts();
 
-  MyTim->setOverflow(10, MICROSEC_FORMAT); // 100 Hz
+  MyTim->setOverflow(rowScanFreq, HERTZ_FORMAT); 
   MyTim->attachInterrupt(Update_IT_callback);
   MyTim->resume();
-  
-  // u8x8.setBusClock(1);
-  // u8x8.begin();
-  // u8x8.setFont(u8x8_font_px437wyse700a_2x2_r);
-  // u8x8.drawString(0, 20, "Starting");
 }
 
 void handleButtonInterrupt(uint32_t* data) {
@@ -105,17 +103,23 @@ void handleButtonInterrupt(uint32_t* data) {
   uint8_t col = getPinIndex(*data);
   uint8_t row = currentRowIndex;
   detachColumnInterrupts();
-  buttonState[0] = row;
-  buttonState[1] = col;
+
+  if (previousState[0] == row && previousState[1] == col) {
+    ++repeat;
+  } else {
+    repeat = 0;
+  }
+  previousState[0] = currentState[0];
+  previousState[1] = currentState[1];
+  currentState[0] = row;
+  currentState[1] = col;
   updateDisplay();
 }
 
 void updateDisplay() {
-  u8x8.drawString(0, 0, u8x8_u8toa(buttonState[0], 3));
-  u8x8.drawString(0, 20, u8x8_u8toa(buttonState[1], 3));
-
-  // u8x8.setFont(u8x8_font_px437wyse700b_2x2_r);
-  // u8x8.drawString(0, 2, "ABC defg");
+  sprintf(lineBuffer, "%d -> %d : %d", currentState[0], currentState[1], repeat);
+  u8x8.drawString(0, 0, lineBuffer);
+  // u8x8.drawString(0, 16, u8x8_u8toa(buttonState[1], 3));
 }
 
 void loop()
