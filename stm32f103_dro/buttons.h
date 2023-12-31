@@ -6,17 +6,17 @@
 
 class Button {
 public:
-  Button(uint32_t pin);
+  Button(uint16_t pin);
 private:
-  uint32_t _pin;
+  uint16_t _pin;
 };
 
 class KeyPad {
 public:
-  KeyPad(uint32_t pulse[], uint32_t pole[]);
+  KeyPad(std::vector<uint8_t> pulse, std::vector<uint8_t> poll);
 private:
-  std::vector<Button*> _pulse;
-  std::vector<Button*> _pole;
+  std::vector<uint8_t> _pulse;
+  std::vector<Button*> _poll;
 };
 
 #endif
