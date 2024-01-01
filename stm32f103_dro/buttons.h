@@ -6,6 +6,7 @@
 
 class Button {
 public:
+  Button();
   Button(uint16_t pin);
 private:
   uint16_t _pin;
@@ -13,6 +14,7 @@ private:
 
 class KeyPad {
 public:
+  KeyPad();
   KeyPad(std::vector<uint8_t> pulse, std::vector<uint8_t> poll);
 private:
   std::vector<uint8_t> _pulse;

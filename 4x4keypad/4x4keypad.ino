@@ -10,11 +10,11 @@
 #endif
 
 #include <U8x8lib.h>
-
+#include <keypad.h>
 #include <array>
 #include <map>
 
-const uint32_t rowScanFreq = 20; //Hz
+const uint32_t rowScanFreq = 100; //Hz
 std::array<uint32_t, 4> rowPins = {PA0, PA1, PA2, PA3};
 std::array<uint32_t, 4> colPins = {PA4, PA5, PA6, PA7};
 volatile uint8_t currentRowIndex = 0;
@@ -54,7 +54,7 @@ void configureRowPins() {
 
 void configureColumnPins() {
   for (std::size_t i = 0; i < colPins.size(); i++) {
-    pinMode(colPins[i], INPUT_PULLDOWN);
+    pinMode(colPins[i], INPUT_PULLUP);
   }
 }
 
@@ -69,6 +69,8 @@ void detachColumnInterrupts() {
   }
 }
 
+HardwareTimer *MyTim = new HardwareTimer();
+
 void setup()
 {
 //  Serial.begin(9600); 
@@ -82,8 +84,8 @@ void setup()
 #endif
 
   // Instantiate HardwareTimer object. Thanks to 'new' instanciation, HardwareTimer is not destructed when setup() function is finished.
-  HardwareTimer *MyTim = new HardwareTimer(Instance);
-
+  MyTim->setup(Instance);
+  auto i = millis();
   // configure pin in output mode
   configureRowPins();
   configureColumnPins();
@@ -117,7 +119,7 @@ void handleButtonInterrupt(uint32_t* data) {
 }
 
 void updateDisplay() {
-  sprintf(lineBuffer, "%d -> %d : %d", currentState[0], currentState[1], repeat);
+  sprintf(lineBuffer, "%d -> %d : %03d", currentState[0], currentState[1], repeat);
   u8x8.drawString(0, 0, lineBuffer);
   // u8x8.drawString(0, 16, u8x8_u8toa(buttonState[1], 3));
 }
